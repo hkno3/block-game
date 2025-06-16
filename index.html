@@ -11,25 +11,28 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            height: 100vh;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             font-family: 'Arial', sans-serif;
             color: white;
+            overflow: hidden;
         }
         
         .game-container {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px;
+            border-radius: 18px;
+            padding: 25px;
             box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
             border: 1px solid rgba(255, 255, 255, 0.18);
             text-align: center;
+            max-height: 95vh;
+            overflow: hidden;
         }
         
         h1 {
-            margin: 0 0 20px 0;
-            font-size: 2.5em;
+            margin: 0 0 15px 0;
+            font-size: 2.2em;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
             background: linear-gradient(45deg, #fff, #ffd700);
             -webkit-background-clip: text;
@@ -39,9 +42,9 @@
         
         canvas {
             border: 3px solid rgba(255, 255, 255, 0.3);
-            border-radius: 15px;
+            border-radius: 13px;
             background: #000;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.3);
+            box-shadow: inset 0 0 18px rgba(0,0,0,0.3);
             display: block;
             margin: 0 auto;
         }
@@ -50,36 +53,28 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin: 20px 0 10px 0;
-            font-size: 1.2em;
+            margin: 15px 0 8px 0;
+            font-size: 1em;
             font-weight: bold;
         }
         
-        .score {
-            color: #FFD700;
-        }
-        
-        .lives {
-            color: #FF6B6B;
-        }
-        
-        .level {
-            color: #4ECDC4;
-        }
+        .score { color: #FFD700; }
+        .lives { color: #FF6B6B; }
+        .level { color: #4ECDC4; }
         
         .controls {
             display: flex;
             justify-content: center;
-            gap: 15px;
-            margin: 20px 0;
+            gap: 12px;
+            margin: 15px 0;
         }
         
         .control-btn {
             background: rgba(255, 255, 255, 0.2);
             border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 10px;
+            border-radius: 9px;
             color: white;
-            font-size: 1.2em;
+            font-size: 1.1em;
             cursor: pointer;
             transition: all 0.2s ease;
             user-select: none;
@@ -87,8 +82,8 @@
             align-items: center;
             justify-content: center;
             backdrop-filter: blur(10px);
-            width: 80px;
-            height: 50px;
+            width: 70px;
+            height: 45px;
         }
         
         .control-btn:active {
@@ -100,11 +95,11 @@
             background: linear-gradient(45deg, #4CAF50, #45a049);
             border: none;
             color: white;
-            padding: 12px 24px;
-            font-size: 1.1em;
-            border-radius: 25px;
+            padding: 10px 20px;
+            font-size: 1em;
+            border-radius: 20px;
             cursor: pointer;
-            margin: 10px;
+            margin: 8px;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
         }
@@ -129,10 +124,10 @@
         }
         
         .instructions {
-            margin-top: 15px;
-            font-size: 0.9em;
+            margin-top: 12px;
+            font-size: 0.8em;
             opacity: 0.8;
-            line-height: 1.5;
+            line-height: 1.4;
         }
         
         @media (max-width: 600px) {
@@ -169,11 +164,11 @@
         
         <div class="game-info">
             <div class="score">점수: <span id="score">0</span></div>
-            <div class="level">레벨: <span id="level">1</span></div>
+            <div class="level">시간: <span id="gameTime">00:00</span></div>
             <div class="lives">❤️ <span id="lives">3</span></div>
         </div>
         
-        <canvas id="gameCanvas" width="480" height="600"></canvas>
+        <canvas id="gameCanvas" width="430" height="540"></canvas>
         
         <div class="controls">
             <div class="control-btn" id="leftBtn">←</div>
@@ -187,7 +182,7 @@
         <div class="instructions">
             ← → 화살표키 또는 터치로 패들 조작<br>
             스페이스바 또는 🚀 버튼으로 공 발사<br>
-            모든 블록을 깨면 다음 레벨!
+            30초마다 속도 증가!
         </div>
         
         <div class="game-over" id="gameOver">
@@ -208,14 +203,18 @@
         let lives = 3;
         let level = 1;
         let gameWon = false;
+        let gameTime = 0;
+        let lastSpeedUpTime = 0;
+        let gameStartTime = 0;
 
         // 패들
         const paddle = {
-            x: canvas.width / 2 - 60,
+            x: canvas.width / 2 - 55,
             y: canvas.height - 30,
-            width: 120,
-            height: 15,
-            speed: 8,
+            width: 110,
+            height: 14,
+            baseSpeed: 7,
+            speed: 7,
             color: '#4ECDC4'
         };
 
@@ -223,10 +222,11 @@
         const ball = {
             x: canvas.width / 2,
             y: canvas.height - 50,
-            radius: 8,
+            radius: 7,
             dx: 0,
             dy: 0,
-            speed: 5,
+            baseSpeed: 4.5,
+            speed: 4.5,
             color: '#FFD700',
             launched: false
         };
@@ -234,9 +234,9 @@
         // 블록들
         let blocks = [];
         const blockRows = 6;
-        const blockCols = 10;
-        const blockWidth = 45;
-        const blockHeight = 20;
+        const blockCols = 9;
+        const blockWidth = 40;
+        const blockHeight = 18;
         const blockPadding = 3;
         const blockColors = ['#FF6B6B', '#FF8E53', '#FF6B9D', '#C44569', '#F8B500', '#6C5CE7'];
 
@@ -253,7 +253,7 @@
             
             for (let row = 0; row < blockRows; row++) {
                 for (let col = 0; col < blockCols; col++) {
-                    if (level > 1 && Math.random() < 0.1) continue; // 고레벨에서 일부 블록 생략
+                    if (level > 1 && Math.random() < 0.1) continue;
                     
                     blocks.push({
                         x: offsetX + col * (blockWidth + blockPadding),
@@ -290,9 +290,40 @@
                    ball.y + ball.radius > rect.y;
         }
 
+        // 시간 포맷팅
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // 게임 시간 및 속도 업데이트
+        function updateGameTime() {
+            if (!gameRunning || isPaused || gameStartTime === 0) return;
+            
+            gameTime = Math.floor((Date.now() - gameStartTime) / 1000);
+            
+            // 30초마다 속도 증가
+            const speedUpIntervals = Math.floor(gameTime / 30);
+            if (speedUpIntervals > lastSpeedUpTime) {
+                lastSpeedUpTime = speedUpIntervals;
+                
+                // 공 속도 10% 증가
+                ball.speed = ball.baseSpeed * Math.pow(1.1, speedUpIntervals);
+                
+                // 패들 속도 50% 증가 (처음 한 번만)
+                if (speedUpIntervals === 1) {
+                    paddle.speed = paddle.baseSpeed * 1.5;
+                }
+            }
+        }
+
         // 공 발사
         function launchBall() {
             if (!ball.launched && gameRunning && !isPaused) {
+                if (gameStartTime === 0) {
+                    gameStartTime = Date.now();
+                }
                 ball.dx = (Math.random() - 0.5) * 6;
                 ball.dy = -ball.speed;
                 ball.launched = true;
@@ -335,7 +366,6 @@
             // 패들 충돌
             if (checkCollision(ball, paddle) && ball.dy > 0) {
                 ball.dy = -ball.dy;
-                // 패들의 어느 부분에 맞았는지에 따라 각도 조정
                 const hitPos = (ball.x - paddle.x) / paddle.width;
                 ball.dx = (hitPos - 0.5) * 8;
                 createParticles(ball.x, ball.y, paddle.color);
@@ -402,7 +432,8 @@
         // 다음 레벨
         function nextLevel() {
             level++;
-            ball.speed += 0.5;
+            ball.baseSpeed += 0.3;
+            ball.speed = ball.baseSpeed * Math.pow(1.1, lastSpeedUpTime);
             createBlocks();
             resetBall();
         }
@@ -469,11 +500,13 @@
         // 게임 루프
         function gameLoop() {
             if (gameRunning && !isPaused) {
+                updateGameTime();
                 updatePaddle();
                 updateBall();
                 updateParticles();
             }
             
+            updateDisplay();
             render();
             requestAnimationFrame(gameLoop);
         }
@@ -481,7 +514,7 @@
         // 디스플레이 업데이트
         function updateDisplay() {
             document.getElementById('score').textContent = score;
-            document.getElementById('level').textContent = level;
+            document.getElementById('gameTime').textContent = formatTime(gameTime);
             document.getElementById('lives').textContent = lives;
         }
 
@@ -496,13 +529,19 @@
             score = 0;
             lives = 3;
             level = 1;
-            ball.speed = 5;
+            gameTime = 0;
+            lastSpeedUpTime = 0;
+            gameStartTime = 0;
+            ball.baseSpeed = 4.5;
+            ball.speed = 4.5;
+            paddle.baseSpeed = 7;
+            paddle.speed = 7;
             gameRunning = true;
             isPaused = false;
             gameWon = false;
             particles = [];
             
-            paddle.x = canvas.width / 2 - 60;
+            paddle.x = canvas.width / 2 - 55;
             createBlocks();
             resetBall();
             
